@@ -1,0 +1,30 @@
+[
+  {
+    "ref": "ART001",
+    "name": "Товар 1",
+    "qty": 10,
+    "price": 100.50,
+    "vat_rate": 18
+  },
+  {
+    "ref": "ART002",
+    "name": "Товар 2",
+    "qty": 5,
+    "price": 200.00,
+    "vat_rate": 18
+  },
+  {
+    "ref": "ART003",
+    "name": "Товар 3",
+    "qty": 15,
+    "price": 150.75,
+    "vat_rate": 18
+  },
+  {
+    "ref": "ART004",
+    "name": "Товар 4",
+    "qty": 8,
+    "price": 300.25,
+    "vat_rate": 18
+  }
+]
