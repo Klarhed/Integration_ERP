@@ -59,6 +59,11 @@ namespace _1C_Integration_UI.Forms
             _ucInvoices = new ucInvoicesList();
             _contentPanel.Controls.Add(_ucInvoices);
 
+            _ucWarehouses = new ucWarehouseList();
+            _contentPanel.Controls.Add(_ucWarehouses);
+
+            _ucWarehouses.Visible = false;
+
             this.Load += async (s, e) => await ShowInvoicesScreenAsync();
         }
 
@@ -119,15 +124,15 @@ namespace _1C_Integration_UI.Forms
             {
                 ctrl.Visible = false;
             }
+            _ucWarehouses.Visible = true;
 
-            if (_ucWarehouses != null)
-            {
-                _ucWarehouses.Visible = true;
+            try { 
                 await _ucWarehouses.LoadWarehousesListAsync();
             }
-            else
+            catch (Exception ex) 
             {
-                MessageBox.Show("Экран управления складами в разработке", "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show($"Не удалось загрузить список складов: {ex.Message}",
+                            "Ошибка данных", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }

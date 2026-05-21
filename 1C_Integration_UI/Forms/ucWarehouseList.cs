@@ -14,7 +14,7 @@ namespace _1C_Integration_UI.Forms
 {
     public partial class ucWarehouseList : UserControl
     {
-        private WarehouseContext _context;
+        private WarehouseService _warehouseService;
         private DataGridView _gridWarehouse;
         private BindingSource _bindingSource;
         private Button _btnCreateWarehouse;
@@ -24,7 +24,7 @@ namespace _1C_Integration_UI.Forms
         {
             this.Dock = DockStyle.Fill;
 
-            _context = new WarehouseContext();
+            _warehouseService = new WarehouseService();
             _bindingSource = new BindingSource();
 
             InitializeControlComponents();
@@ -86,6 +86,7 @@ namespace _1C_Integration_UI.Forms
             // Настройка колонок и стиля
             _gridWarehouse.AutoGenerateColumns = false;
             _gridWarehouse.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "ID", DataPropertyName = "Id", Width = 60 });
+            _gridWarehouse.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Код склада", DataPropertyName = "Code", Width = 180 });
             _gridWarehouse.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Название склада", DataPropertyName = "Name", Width = 180 });
 
             StyleDataGridView(_gridWarehouse);
@@ -93,34 +94,65 @@ namespace _1C_Integration_UI.Forms
 
         public async Task LoadWarehousesListAsync()
         {
-            var warehouses = await _context.Warehouses.OrderBy(w => w.Name).ToListAsync();
-            _bindingSource.DataSource = warehouses;
+            var warehouses = await _warehouseService.GetWarehousesAsync();
+            _bindingSource.DataSource = new BindingList<WarehouseService.WarehouseDto>(warehouses);
         }
 
         private async void BtnCreateWarehous_Click(object sender, EventArgs e)
         {
-            var addWarehouseForm = new AddWarehouseForm();
-            if (addWarehouseForm.ShowDialog() == DialogResult.OK)
+            using(var AddWarehouseForm = new AddWarehouseForm())
             {
-                await LoadWarehousesListAsync();
+                if(AddWarehouseForm.ShowDialog() == DialogResult.OK)
+                {
+                    var dto = AddWarehouseForm.EditedWarehouse;
+
+                    try
+                    {
+                        await _warehouseService.AddNewWarehouseAsync(dto.Code, dto.Name);
+
+                        await LoadWarehousesListAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Ошибка при сохранении: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
             }
         }
 
-        private void GridWarehouse_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+        private async void GridWarehouse_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex >= 0)
             {
-                if (_bindingSource[e.RowIndex] is WarehouseService.WarehouseDto selectedWarehouse) 
+                if (_bindingSource[e.RowIndex] is WarehouseService.WarehouseDto selectedWarehouseDto) 
                 {
-                    using(var editForm = new AddWarehouseForm())
+                    using (var editForm = new AddWarehouseForm())
                     {
-                        editForm.LoadWarehouseData(selectedWarehouse);
-                        if (editForm.ShowDialog() == DialogResult.OK)
-                        {
-                            selectedWarehouse.Code = editForm.EditedWarehouse.Code;
-                            selectedWarehouse.Name = editForm.EditedWarehouse.Name;
+                        editForm.LoadWarehouseData(selectedWarehouseDto);
 
-                            _bindingSource.ResetItem(e.RowIndex);
+                        if (editForm.ShowDialog() == DialogResult.OK) 
+                        {
+                            try 
+                            { 
+                                using(var context = new WarehouseContext())
+                                {
+                                    var warehouse = await context.Warehouses.FindAsync(selectedWarehouseDto.Id);
+                                    if (warehouse != null)
+                                    {
+                                        warehouse.Code = editForm.EditedWarehouse.Code;
+                                        warehouse.Name = editForm.EditedWarehouse.Name;
+                                        await context.SaveChangesAsync();
+
+                                        selectedWarehouseDto.Code = warehouse.Code;
+                                        selectedWarehouseDto.Name = warehouse.Name;
+                                    }
+                                }
+                                _bindingSource.ResetItem(e.RowIndex);
+                            }
+                            catch (Exception ex)
+                            {
+                                MessageBox.Show($"Ошибка при обновлении: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            }
                         }
                     }
                 }

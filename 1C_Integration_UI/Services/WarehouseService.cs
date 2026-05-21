@@ -10,6 +10,11 @@ namespace _1C_Integration_UI.Services
     public class WarehouseService
     {
         private readonly WarehouseContext _context;
+
+        public WarehouseService()
+        {
+            _context = new WarehouseContext();
+        }
         public WarehouseService(WarehouseContext context)
         {
             _context = context;
@@ -127,10 +132,33 @@ namespace _1C_Integration_UI.Services
             public decimal VatRate { get; set; }
         }
 
-        public async Task<List<Warehouse>> GetWarehousAsync()
+        public async Task<WarehouseDto> AddNewWarehouseAsync(string code, string name)
+        {
+            var newWarehouse = new Warehouse
+            {
+                Code = code.Trim(),
+                Name = name.Trim()
+            };
+            _context.Warehouses.Add(newWarehouse);
+            await _context.SaveChangesAsync();
+            return new WarehouseDto
+            {
+                Id = newWarehouse.Id,
+                Code = newWarehouse.Code,
+                Name = newWarehouse.Name
+            };
+        }
+
+        public async Task<List<WarehouseDto>> GetWarehousesAsync()
         {
             return await _context.Warehouses
                 .OrderBy(w => w.Name)
+                .Select(w => new WarehouseDto
+                {
+                    Id = w.Id,
+                    Code = w.Code,
+                    Name = w.Name
+                })
                 .ToListAsync();
         }
 
@@ -140,6 +168,7 @@ namespace _1C_Integration_UI.Services
                 .Where(w => w.Id == warehouseId)
                 .Select(w => new WarehouseDto
                 {
+                    Id = w.Id,
                     Code = w.Code,
                     Name = w.Name
                 })
@@ -148,6 +177,7 @@ namespace _1C_Integration_UI.Services
 
         public class WarehouseDto
         {
+            public int Id { get; set; }
             public string Code { get; set; }
             public string Name { get; set; }
 
